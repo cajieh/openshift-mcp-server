@@ -18,6 +18,17 @@ Each contains:
 - `eval-tekton.yaml` — eval config for the `tekton` task suite (+ core/config)
 - `eval-netobserv.yaml` — eval config for the `netobserv` task suite (+ core/config)
 - `eval-all.yaml` — eval config that runs all task suites
+- `eval-core-readonly.yaml` (`builtin-openai` only so far) — eval config for the
+  `core-readonly` suite. Proves the server behaves correctly when started with
+  `--read-only`: reasonable read-only tasks still succeed, and a write attempt
+  is actively rejected. It selects on the `readonly: "true"` label instead of
+  `suite:`, reusing the read-only-compatible tasks from `core`/`config` without
+  duplicating them — see `../tasks/core/verify-write-blocked/README.md` for the
+  full pattern, including how to reuse it for another toolset. Run it with:
+  ```bash
+  make run-server READ_ONLY=true TOOLSETS=core,config
+  make run-evals SUITE=core-readonly EVAL_LABEL_SELECTOR=
+  ```
 
 Not all agent directories have every eval file yet — `builtin-openai` is the most complete set, used by the CI workflow.
 

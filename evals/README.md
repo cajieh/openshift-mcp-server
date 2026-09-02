@@ -26,6 +26,11 @@ evals/
 Tasks are grouped into suites via a `suite: <name>` label. The available suites are
 `core`, `config`, `helm`, `kiali`, `kubevirt`, `tekton`, and `netobserv`.
 
+A second, orthogonal `readonly: "true"` label marks tasks that are safe to run
+against a server started with `--read-only`. It cuts across the `suite:` label
+rather than replacing it — see [Read-only suite](#read-only-suite-core-readonly)
+below.
+
 ## Prerequisites
 
 - A Kubernetes cluster (kind, minikube, or any cluster) and `kubectl` configured for it
@@ -184,6 +189,29 @@ each `taskSets` entry determine which tasks run.
 Note: with `AGENT=acp-anthropic` every suite is keyless (agent and judge both run
 on your Claude subscription). With `builtin-*` agents the judge-backed tasks need
 the provider's API key (see [Eval configs](#eval-configs)).
+
+## Read-only suite (`core-readonly`)
+
+Proves that a server started with `read_only=true` both still completes
+reasonable read-only tasks and actively rejects writes — not just assumed
+because the server-side unit tests (`pkg/mcp/mcp_tools_test.go`) say so. It
+reuses the read-only-compatible tasks already in `core`/`config` via the
+`readonly: "true"` label (see [Filtering tasks by suite](#filtering-tasks-by-suite)
+above) instead of duplicating them into a new suite, plus a dedicated
+`verify-write-blocked` task that attempts a write and confirms via a
+ground-truth cluster read that it was rejected (see
+`tasks/core/verify-write-blocked/README.md`, which also documents how to reuse
+the pattern for another toolset, e.g. Tekton).
+
+The MCP server **must** be started with `--read-only` for this suite — its
+tasks assume write tools are unavailable. Because the suite selects tasks by
+`readonly: "true"` rather than `suite: core-readonly`, the default
+`EVAL_LABEL_SELECTOR` (`suite=$(SUITE)`) must be cleared:
+
+```bash
+make run-server READ_ONLY=true TOOLSETS=core,config
+make run-evals SUITE=core-readonly EVAL_LABEL_SELECTOR=
+```
 
 ## Versions
 
