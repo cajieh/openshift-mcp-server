@@ -4,11 +4,24 @@ MCP_PORT ?= 8080
 MCP_HEALTH_TIMEOUT ?= 60
 MCP_HEALTH_INTERVAL ?= 2
 MCP_CONFIG_DIR ?= dev/config/mcp-configs
+# When true, run-server passes --read-only to the binary so only tools
+# annotated readOnlyHint=true are exposed. Required by the core-readonly suite.
+READ_ONLY ?= false
 
 MCPCHECKER = $(shell pwd)/_output/tools/bin/mcpchecker
 MCPCHECKER_VERSION ?= latest
-EVAL_CONFIG ?= evals/openai-agent/eval.yaml
-EVAL_LABEL_SELECTOR ?= suite=kubernetes
+
+# High-level knobs for local single-suite runs, e.g.:
+#   make run-evals SUITE=core-readonly AGENT=builtin-openai
+# AGENT selects the eval config directory under evals/core-eval-testing/, SUITE
+# selects which evals/core-eval-testing/<AGENT>/eval-<SUITE>.yaml to run. Each
+# per-suite eval file already carries its own taskSets[].labelSelector, so
+# EVAL_LABEL_SELECTOR is left empty by default (set it to further narrow which
+# tasks run within that file, e.g. EVAL_LABEL_SELECTOR=difficulty=easy).
+AGENT ?= builtin-openai
+SUITE ?= core
+EVAL_CONFIG ?= evals/core-eval-testing/$(AGENT)/eval-$(SUITE).yaml
+EVAL_LABEL_SELECTOR ?=
 EVAL_TASK_FILTER ?=
 EVAL_VERBOSE ?= false
 
@@ -50,16 +63,21 @@ diff-evals: mcpchecker ## Diff latest mcpchecker results against baseline
 	$(MCPCHECKER) diff --base "$$BASELINE" --current "$$RESULTS_FILE" --output markdown
 
 .PHONY: run-server
-run-server: build ## Start MCP server in background and wait for health check
+run-server: build ## Start MCP server in background and wait for health check (knobs: TOOLSETS, READ_ONLY)
 	@echo "Starting MCP server on port $(MCP_PORT)..."
 	@if [ -n "$(MCP_LOG_FILE)" ]; then \
 		echo "Redirecting server logs to $(MCP_LOG_FILE)"; \
 		REDIRECT="> $(MCP_LOG_FILE) 2>&1"; \
 	fi; \
+	READ_ONLY_FLAG=""; \
+	if [ "$(READ_ONLY)" = "true" ]; then \
+		echo "Starting server with --read-only (only readOnlyHint=true tools are exposed)"; \
+		READ_ONLY_FLAG="--read-only"; \
+	fi; \
 	if [ -n "$(TOOLSETS)" ]; then \
-		eval "./$(BINARY_NAME) --port $(MCP_PORT) --toolsets $(TOOLSETS) --config-dir $(MCP_CONFIG_DIR) $$REDIRECT &" echo $$! > .mcp-server.pid; \
+		eval "./$(BINARY_NAME) --port $(MCP_PORT) --toolsets $(TOOLSETS) --config-dir $(MCP_CONFIG_DIR) $$READ_ONLY_FLAG $$REDIRECT &" echo $$! > .mcp-server.pid; \
 	else \
-		eval "./$(BINARY_NAME) --port $(MCP_PORT) $$REDIRECT &" echo $$! > .mcp-server.pid; \
+		eval "./$(BINARY_NAME) --port $(MCP_PORT) $$READ_ONLY_FLAG $$REDIRECT &" echo $$! > .mcp-server.pid; \
 	fi
 	@echo "MCP server started with PID $$(cat .mcp-server.pid)"
 	@echo "Waiting for MCP server to be ready..."

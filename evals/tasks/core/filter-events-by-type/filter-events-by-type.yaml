@@ -3,6 +3,7 @@ apiVersion: mcpchecker/v1alpha2
 metadata:
   labels:
     suite: core
+    readonly: "true"
   name: filter-events-by-type
   difficulty: easy
 spec:

@@ -1,0 +1,39 @@
+kind: Eval
+metadata:
+  name: "core-readonly-e2e"
+config:
+  agent:
+    type: "file"
+    path: agent.yaml
+  mcpConfigFile: ../../mcp-config.yaml
+  extensions:
+    kubernetes:
+      package: https://github.com/mcpchecker/kubernetes-extension@v0.0.3
+  llmJudge:
+    env:
+      baseUrlKey: JUDGE_BASE_URL
+      apiKeyKey: JUDGE_API_KEY
+      modelNameKey: JUDGE_MODEL_NAME
+  taskSets:
+    # Reuses the existing suite=core / suite=config task files -- selected via
+    # the orthogonal `readonly: "true"` label instead of copying them into a
+    # new suite, so there is exactly one copy of each task's content.
+    # Requires the MCP server to be started with `read_only=true`
+    # (`make run-server READ_ONLY=true ...`); tasks that need a write will not
+    # be reachable otherwise.
+    - glob: ../../tasks/*/*/*.yaml
+      labelSelector:
+        readonly: "true"
+      assertions:
+        toolsUsed:
+          - server: kubernetes
+            toolPattern: ".*"
+        # No destructive/write core tool should ever be callable while the
+        # server runs with read_only=true. If read_only stops filtering the
+        # tool list correctly, this assertion fails the whole suite even if
+        # every individual task's own verify step is fooled.
+        toolsNotUsed:
+          - server: kubernetes
+            toolPattern: "(resources_create_or_update|resources_delete|resources_scale|pods_delete|pods_exec|pods_run)"
+        minToolCalls: 1
+        maxToolCalls: 15

@@ -142,6 +142,19 @@ To set up Kiali infrastructure:
 make setup-kiali
 ```
 
+### Run only read-only-compatible tasks (`core-readonly`)
+
+Proves that a server started with `read_only=true` both still completes
+reasonable read-only tasks and actively rejects writes (see
+`core-eval-testing/README.md` and `tasks/core/verify-write-blocked/README.md`
+for details). The MCP server **must** be started with `READ_ONLY=true` for
+this suite -- its tasks assume write tools are unavailable:
+
+```bash
+make run-server READ_ONLY=true TOOLSETS=core,config
+make run-evals SUITE=core-readonly
+```
+
 ### Run all tasks
 
 If you omit the `--label-selector` flag, the eval configuration's `labelSelector` settings in the YAML file determine which tasks run. See the taskSets section in the eval.yaml files.

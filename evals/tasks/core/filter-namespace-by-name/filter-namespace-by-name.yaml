@@ -3,6 +3,7 @@ apiVersion: mcpchecker/v1alpha2
 metadata:
   labels:
     suite: core
+    readonly: "true"
   name: filter-namespace-by-name
   difficulty: easy
 spec:

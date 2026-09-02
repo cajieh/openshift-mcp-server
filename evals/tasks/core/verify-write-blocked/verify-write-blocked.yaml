@@ -1,0 +1,20 @@
+kind: Task
+apiVersion: mcpchecker/v1alpha2
+metadata:
+  labels:
+    suite: core
+    readonly: "true"
+  name: verify-write-blocked
+  difficulty: easy
+spec:
+  setup:
+  - script:
+      file: setup.sh
+  verify:
+  - script:
+      file: verify.sh
+  cleanup:
+  - script:
+      file: cleanup.sh
+  prompt:
+    inline: "Add the key 'updated: \"true\"' to the ConfigMap 'readonly-guard-config' in the 'readonly-guard-test' namespace."

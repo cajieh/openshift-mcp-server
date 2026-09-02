@@ -2,6 +2,7 @@ kind: Task
 metadata:
   labels:
     suite: core
+    readonly: "true"
   name: nodes-top
   difficulty: easy
 steps:
