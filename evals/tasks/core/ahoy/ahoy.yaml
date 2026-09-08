@@ -2,7 +2,6 @@ kind: Task
 metadata:
   labels:
     suite: core
-    readonly: "true"
   name: "ahoy"
   difficulty: easy
 steps:
