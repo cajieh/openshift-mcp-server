@@ -144,10 +144,12 @@ make setup-kiali
 
 ### Run only read-only-compatible tasks (`core-readonly`)
 
-Proves that a server started with `read_only=true` both still completes
-reasonable read-only tasks and actively rejects writes (see
-`core-eval-testing/README.md` and `tasks/core/verify-write-blocked/README.md`
-for details). The MCP server **must** be started with `READ_ONLY=true` for
+Proves that a model using only the tools exposed by a server started with
+`read_only=true` can still complete real read-only diagnostic workflows (see
+`core-eval-testing/README.md` for details). Write-blocking itself is a
+deterministic server property, not model behavior, so it's covered by
+`TestReadOnlyBlocksWriteToolInvocation` in `pkg/mcp/mcp_tools_test.go` instead
+of an eval task. The MCP server **must** be started with `READ_ONLY=true` for
 this suite -- its tasks assume write tools are unavailable:
 
 ```bash

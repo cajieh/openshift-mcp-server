@@ -47,5 +47,6 @@ uses this pattern: read-only-compatible tasks from `core` and `config` are
 tagged with an additional `readonly: "true"` label, and the `core-readonly`
 eval config selects on that label alone (not `suite`). The task files
 themselves are unmodified except for the one extra label line -- no copies are
-made. See `core/verify-write-blocked/README.md` for the full recipe, including
-how to add an analogous read-only suite for another toolset.
+made. See the [Read-only suite](../README.md#run-only-read-only-compatible-tasks-core-readonly)
+section for the full pattern, including why write-blocking itself is verified
+by a Go test (`pkg/mcp/mcp_tools_test.go`) rather than an eval task.

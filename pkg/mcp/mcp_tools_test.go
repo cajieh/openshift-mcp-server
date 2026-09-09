@@ -5,6 +5,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/suite"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // McpToolProcessingSuite tests MCP tool processing (isToolApplicable)
@@ -53,6 +55,35 @@ func (s *McpToolProcessingSuite) TestReadOnly() {
 			s.Falsef(tool.Annotations.DestructiveHint != nil && *tool.Annotations.DestructiveHint,
 				"Tool %s is destructive but should not be in read-only mode", tool.Name)
 		}
+	})
+}
+
+// TestReadOnlyBlocksWriteToolInvocation proves that read_only=true is enforced,
+// not just advertised. TestReadOnly above only checks that ListTools omits write
+// tools from the menu; a client that already knows a write tool's name (e.g. from
+// a previous, non-read-only session, or by guessing) could still try to invoke it
+// directly. This calls a write tool by name regardless of what ListTools returned,
+// and additionally verifies against the real (envtest) cluster that the target
+// resource was left untouched -- a ground-truth check independent of the API
+// response, so a bug that returns an error while still mutating the cluster would
+// still be caught.
+func (s *McpToolProcessingSuite) TestReadOnlyBlocksWriteToolInvocation() {
+	s.Require().NoError(toml.Unmarshal([]byte(`
+		read_only = true
+	`), s.Cfg), "Expected to parse read only server config")
+	s.InitMcpClient()
+
+	kubernetesAdmin := kubernetes.NewForConfigOrDie(envTestRestConfig)
+
+	s.Run("calling a write tool directly is rejected even though it is not in the tool list", func() {
+		result, err := s.CallTool("pods_delete", map[string]any{"name": "a-pod-in-default"})
+		s.Require().Errorf(err, "expected calling a write tool directly to be rejected in read-only mode, got result: %v", result)
+	})
+
+	s.Run("ground truth: the target resource was not mutated", func() {
+		pod, err := kubernetesAdmin.CoreV1().Pods("default").Get(s.T().Context(), "a-pod-in-default", metav1.GetOptions{})
+		s.Require().NoError(err, "expected pod a-pod-in-default to still exist after the blocked delete attempt")
+		s.NotNilf(pod, "expected pod a-pod-in-default to still exist after the blocked delete attempt")
 	})
 }
 

@@ -19,13 +19,13 @@ Each contains:
 - `eval-config.yaml` — eval config for the `config` task suite
 - `eval-helm.yaml` — eval config for the `helm` task suite
 - `eval-core-readonly.yaml` (`builtin-openai` only so far) — eval config for the
-  `core-readonly` suite, which proves the MCP server behaves correctly when
-  started with `read_only=true`: reasonable read-only tasks still succeed, and
-  a write attempt is actively rejected (not just assumed). It reuses the
-  read-only-compatible tasks from `core`/`config` via a `readonly: "true"`
-  label instead of duplicating them — see `evals/tasks/core/verify-write-blocked/README.md`
-  for the full pattern, including how to reuse it for another toolset (e.g. Tekton).
-  Run it with:
+  `core-readonly` suite, which proves a model can still complete real
+  diagnostic workflows using only the tools exposed when the server is started
+  with `read_only=true`. It reuses the read-only-compatible tasks from
+  `core`/`config` via a `readonly: "true"` label instead of duplicating them
+  — see the [Read-only suite](../README.md#run-only-read-only-compatible-tasks-core-readonly)
+  section for the full pattern (including why write-blocking is verified by a
+  Go test instead of an eval task). Run it with:
   ```bash
   make run-server READ_ONLY=true TOOLSETS=core,config
   make run-evals SUITE=core-readonly
